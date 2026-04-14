@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Logs
+*.log
+
+# yt-dlp / download artifacts
+*.part
+*.ytdl
+*.webm
+*.m4a
+
+# Server runtime
+.downlist_history.json
