@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Downlist</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      min-height: 120px;
+      background: #121212;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #282828;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.3px;
+      color: #1db954;
+    }
+
+    .logo span { color: #fff; }
+
+    #open-folder-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #282828;
+      border: none;
+      color: #b3b3b3;
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    #open-folder-btn:hover { background: #333; color: #fff; }
+
+    #status-bar {
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #b3b3b3;
+      border-bottom: 1px solid #282828;
+      display: none;
+    }
+
+    #status-bar.offline { color: #f15e6c; display: block; }
+    #status-bar.online  { color: #1db954; display: block; }
+
+    #track-list {
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    #track-list::-webkit-scrollbar { width: 4px; }
+    #track-list::-webkit-scrollbar-track { background: transparent; }
+    #track-list::-webkit-scrollbar-thumb { background: #404040; border-radius: 2px; }
+
+    .track-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .track-item:last-child { border-bottom: none; }
+
+    .track-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #1db954;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .track-check svg { display: block; }
+
+    .track-info { flex: 1; min-width: 0; }
+
+    .track-name {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-meta {
+      color: #b3b3b3;
+      font-size: 11px;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-date {
+      color: #535353;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .empty {
+      padding: 28px 16px;
+      text-align: center;
+      color: #535353;
+      line-height: 1.5;
+    }
+
+    .empty strong { display: block; color: #b3b3b3; margin-bottom: 4px; font-size: 14px; }
+
+    footer {
+      padding: 8px 16px;
+      border-top: 1px solid #282828;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #535353;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">down<span>list</span></div>
+    <button id="open-folder-btn">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5L5.957 1.457A1.75 1.75 0 0 0 4.713 1H1.75z"/>
+      </svg>
+      Open folder
+    </button>
+  </header>
+
+  <div id="status-bar"></div>
+
+  <div id="track-list">
+    <div class="empty" id="empty-state">
+      <strong>No downloads yet</strong>
+      Click ⬇ on any track in Spotify to start
+    </div>
+  </div>
+
+  <footer>
+    <span id="count-label">0 tracks downloaded</span>
+    <span>downlist v1.0</span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
