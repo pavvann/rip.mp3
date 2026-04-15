@@ -2,26 +2,7 @@
 // Injects download buttons into track rows and the now-playing bar.
 
 const INJECTED_ATTR = "data-rip";
-const DEFAULT_SERVER = "http://localhost:7823";
-
-let SERVER = DEFAULT_SERVER;
-let SECRET = "";
-
-function ripHeaders() {
-  const h = { "Content-Type": "application/json" };
-  if (SECRET) h["X-Rip-Secret"] = SECRET;
-  return h;
-}
-
-function loadConfig() {
-  chrome.storage.sync.get(["ripServer", "ripSecret"], ({ ripServer = DEFAULT_SERVER, ripSecret = "" }) => {
-    SERVER = ripServer;
-    SECRET = ripSecret;
-  });
-}
-
-loadConfig();
-chrome.runtime.onMessage.addListener((msg) => { if (msg.action === "reloadConfig") loadConfig(); });
+const SERVER = "http://localhost:7823";
 
 // SVG icons
 const ICON_DOWNLOAD = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -126,13 +107,12 @@ function extractTrackInfoFromNowPlaying(widget) {
 function pollStatus(jobId, btn) {
   const interval = setInterval(async () => {
     try {
-      const res = await fetch(`${SERVER}/status/${jobId}`, { headers: ripHeaders() });
+      const res = await fetch(`${SERVER}/status/${jobId}`);
       const data = await res.json();
 
       if (data.status === "done") {
         clearInterval(interval);
         setButtonState(btn, "done");
-        triggerBrowserDownload(jobId, btn);
       } else if (data.status === "normalizing") {
         btn.classList.add("dl-loading");
         btn.innerHTML = `<span class="dl-pct">~</span>`;
@@ -152,41 +132,12 @@ function pollStatus(jobId, btn) {
   }, 2000);
 }
 
-async function triggerBrowserDownload(jobId, btn) {
-  const url = `${SERVER}/file/${jobId}${SECRET ? `?secret=${encodeURIComponent(SECRET)}` : ""}`;
-  try {
-    // Keep button in normalizing state while transferring
-    btn.innerHTML = `<span class="dl-pct">↓</span>`;
-    btn.title = "Saving to your machine…";
-
-    const res = await fetch(url, { headers: ripHeaders() });
-    if (!res.ok) throw new Error("Transfer failed");
-
-    const disposition = res.headers.get("Content-Disposition") || "";
-    const nameMatch = disposition.match(/filename="?([^"]+)"?/);
-    const filename = nameMatch ? decodeURIComponent(nameMatch[1]) : "track.mp3";
-
-    const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = objectUrl;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(objectUrl);
-
-    setButtonState(btn, "done");
-  } catch {
-    setButtonState(btn, "error");
-    btn.title = "Transfer failed — click to retry";
-  }
-}
-
 async function triggerDownload(info, btn) {
   setButtonState(btn, "loading");
   try {
     const res = await fetch(`${SERVER}/download`, {
       method: "POST",
-      headers: ripHeaders(),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(info),
     });
 

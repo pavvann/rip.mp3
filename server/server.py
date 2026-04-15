@@ -4,11 +4,10 @@ import subprocess
 import threading
 import uuid
 from datetime import datetime
-from functools import wraps
 from pathlib import Path
 
 import yt_dlp
-from flask import Flask, after_this_request, jsonify, request, send_file
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from mutagen.id3 import ID3, TCON, error as ID3Error
 from rapidfuzz import fuzz
@@ -18,19 +17,7 @@ ytmusic = YTMusic()
 app = Flask(__name__)
 CORS(app, origins=["chrome-extension://*", "http://localhost:*", "https://open.spotify.com", "https://www.beatport.com"])
 
-API_SECRET = os.environ.get("RIPMP3_SECRET", "")
-
-def require_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if API_SECRET:
-            token = request.headers.get("X-Rip-Secret") or request.args.get("secret")
-            if token != API_SECRET:
-                return jsonify({"error": "Unauthorized"}), 401
-        return f(*args, **kwargs)
-    return decorated
-
-DOWNLOADS_DIR = Path(os.environ.get("RIPMP3_DOWNLOADS", Path.home() / "Music" / "DJ Downloads"))
+DOWNLOADS_DIR = Path.home() / "Music" / "DJ Downloads"
 HISTORY_FILE = Path.home() / ".ripmp3_history.json"
 
 jobs = {}
@@ -82,7 +69,7 @@ def find_youtube_url(track_name, artist):
 
             if score > best_score:
                 best_score = score
-                best_url = f"https://www.youtube.com/watch?v={r['videoId']}"
+                best_url = f"https://music.youtube.com/watch?v={r['videoId']}"
 
         if best_url and best_score >= 40:
             return best_url
@@ -149,7 +136,7 @@ def run_download(job_id, track_name, artist, genre=""):
             jobs[job_id]["progress"] = 99  # converting…
 
     ydl_opts = {
-        "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best[ext=mp4]/best[ext=webm]/best",
+        "format": "bestaudio/best",
         "outtmpl": output_template,
         "postprocessors": [
             {
@@ -165,7 +152,6 @@ def run_download(job_id, track_name, artist, genre=""):
         "quiet": True,
         "no_warnings": True,
         "default_search": "ytsearch",
-**({"cookiefile": str(Path(__file__).parent / "youtube_cookies.txt")} if (Path(__file__).parent / "youtube_cookies.txt").exists() else {}),
     }
 
     try:
@@ -209,7 +195,6 @@ def run_download(job_id, track_name, artist, genre=""):
 
 
 @app.route("/download", methods=["POST"])
-@require_auth
 def download():
     ensure_dirs()
     data = request.get_json(force=True)
@@ -235,7 +220,6 @@ def download():
 
 
 @app.route("/status/<job_id>")
-@require_auth
 def status(job_id):
     job = jobs.get(job_id)
     if not job:
@@ -244,32 +228,8 @@ def status(job_id):
 
 
 @app.route("/history")
-@require_auth
 def history():
     return jsonify(load_history())
-
-
-@app.route("/file/<job_id>")
-@require_auth
-def download_file(job_id):
-    job = jobs.get(job_id)
-    if not job or job["status"] != "done":
-        return jsonify({"error": "File not ready"}), 404
-    file_path = job.get("file_path")
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({"error": "File not found"}), 404
-
-    @after_this_request
-    def cleanup(response):
-        try:
-            os.remove(file_path)
-            jobs.pop(job_id, None)
-            print(f"Cleaned up: {file_path}")
-        except Exception as e:
-            print(f"Cleanup failed: {e}")
-        return response
-
-    return send_file(file_path, as_attachment=True, mimetype="audio/mpeg")
 
 
 @app.route("/open-folder")
@@ -286,11 +246,6 @@ def ping():
 
 if __name__ == "__main__":
     ensure_dirs()
-    ssl_cert = os.environ.get("RIPMP3_CERT")
-    ssl_key = os.environ.get("RIPMP3_KEY")
-    ssl_ctx = (ssl_cert, ssl_key) if ssl_cert and ssl_key else None
-    host = os.environ.get("RIPMP3_HOST", "0.0.0.0")
-    scheme = "https" if ssl_ctx else "http"
-    print(f"rip.mp3 server running on {scheme}://{host}:7823")
+    print(f"rip.mp3 server running on http://localhost:7823")
     print(f"Downloads folder: {DOWNLOADS_DIR}")
-    app.run(host=host, port=7823, ssl_context=ssl_ctx, debug=False)
+    app.run(host="localhost", port=7823, debug=False)
