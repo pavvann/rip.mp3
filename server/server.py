@@ -288,7 +288,7 @@ if __name__ == "__main__":
     ssl_cert = os.environ.get("RIPMP3_CERT")
     ssl_key = os.environ.get("RIPMP3_KEY")
     ssl_ctx = (ssl_cert, ssl_key) if ssl_cert and ssl_key else None
-    host = "0.0.0.0" if ssl_ctx else "localhost"
+    host = "0.0.0.0"
     scheme = "https" if ssl_ctx else "http"
     print(f"rip.mp3 server running on {scheme}://{host}:7823")
     print(f"Downloads folder: {DOWNLOADS_DIR}")
