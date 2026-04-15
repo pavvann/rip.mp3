@@ -3,7 +3,7 @@
   "name": "rip.mp3 — DJ Track Downloader",
   "version": "1.0.0",
   "description": "Inject download buttons into Spotify and Beatport. 320kbps MP3, normalized, tagged.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs"],
   "host_permissions": [
     "https://open.spotify.com/*",
     "https://www.beatport.com/*",
