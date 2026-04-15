@@ -18,7 +18,7 @@ app = Flask(__name__)
 CORS(app, origins=["chrome-extension://*", "http://localhost:*", "https://open.spotify.com", "https://www.beatport.com"])
 
 DOWNLOADS_DIR = Path.home() / "Music" / "DJ Downloads"
-HISTORY_FILE = Path.home() / ".downlist_history.json"
+HISTORY_FILE = Path.home() / ".ripmp3_history.json"
 
 jobs = {}
 
@@ -58,8 +58,6 @@ def find_youtube_url(track_name, artist):
             r_title = r.get("title", "")
             r_artists = ", ".join(a["name"] for a in r.get("artists", []))
 
-            # token_set_ratio handles "Torsion Original Mix" vs "Torsion" correctly
-            # by treating word sets — subset matches score 100 instead of ~52
             title_score = fuzz.token_set_ratio(track_name.lower(), r_title.lower())
             remix_penalty = 10 if any(w in r_title.lower() for w in ["cover", "remix", "karaoke", "tribute"]) else 0
 
@@ -248,6 +246,6 @@ def ping():
 
 if __name__ == "__main__":
     ensure_dirs()
-    print(f"Downlist server running on http://localhost:7823")
+    print(f"rip.mp3 server running on http://localhost:7823")
     print(f"Downloads folder: {DOWNLOADS_DIR}")
     app.run(host="localhost", port=7823, debug=False)

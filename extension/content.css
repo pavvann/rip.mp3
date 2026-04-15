@@ -1,4 +1,4 @@
-.downlist-btn {
+.rip-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -18,34 +18,34 @@
   color: #b3b3b3;
 }
 
-[data-testid="tracklist-row"]:hover .downlist-btn,
-.downlist-btn.dl-active {
+[data-testid="tracklist-row"]:hover .rip-btn,
+.rip-btn.dl-active {
   opacity: 1;
 }
 
-.downlist-btn:hover {
+.rip-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 
-.downlist-btn.dl-loading {
+.rip-btn.dl-loading {
   opacity: 1;
   color: #1db954;
   pointer-events: none;
 }
 
-.downlist-btn.dl-done {
+.rip-btn.dl-done {
   opacity: 1;
   color: #1db954;
   pointer-events: none;
 }
 
-.downlist-btn.dl-error {
+.rip-btn.dl-error {
   opacity: 1;
   color: #f15e6c;
 }
 
-.downlist-btn svg {
+.rip-btn svg {
   display: block;
 }
 
@@ -63,11 +63,11 @@
   to { transform: rotate(360deg); }
 }
 
-.downlist-btn.dl-loading svg {
+.rip-btn.dl-loading svg {
   animation: dl-spin 0.8s linear infinite;
 }
 
 /* Now-playing bar button */
-.downlist-nowplaying-btn {
+.rip-nowplaying-btn {
   margin-left: 8px;
 }

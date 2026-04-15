@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Downlist — DJ Track Downloader",
+  "name": "rip.mp3 — DJ Track Downloader",
   "version": "1.0.0",
-  "description": "Inject download buttons into Spotify Web and save tracks for DJing.",
+  "description": "Inject download buttons into Spotify and Beatport. 320kbps MP3, normalized, tagged.",
   "permissions": ["storage"],
   "host_permissions": [
     "https://open.spotify.com/*",
@@ -11,7 +11,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Downlist"
+    "default_title": "rip.mp3"
   },
   "background": {
     "service_worker": "background.js"

@@ -1,7 +1,7 @@
-// Downlist — content script for open.spotify.com
+// rip.mp3 — content script for open.spotify.com
 // Injects download buttons into track rows and the now-playing bar.
 
-const INJECTED_ATTR = "data-downlist";
+const INJECTED_ATTR = "data-rip";
 const SERVER = "http://localhost:7823";
 
 // SVG icons
@@ -19,7 +19,7 @@ const ICON_ERROR = `<svg width="16" height="16" viewBox="0 0 16 16" fill="curren
 
 function createButton(extraClass = "") {
   const btn = document.createElement("button");
-  btn.className = `downlist-btn dl-active ${extraClass}`;
+  btn.className = `rip-btn dl-active ${extraClass}`;
   btn.title = "Download track";
   btn.innerHTML = ICON_DOWNLOAD;
   return btn;
@@ -147,7 +147,7 @@ async function triggerDownload(info, btn) {
     pollStatus(data.id, btn);
   } catch (err) {
     setButtonState(btn, "error");
-    btn.title = err.message.includes("fetch") ? "Downlist server not running" : err.message;
+    btn.title = err.message.includes("fetch") ? "rip.mp3 server not running" : err.message;
   }
 }
 
@@ -201,10 +201,10 @@ function injectNowPlaying() {
   lastNowPlayingUrl = info.spotify_url;
 
   // Remove any old button
-  const old = widget.querySelector(".downlist-nowplaying-btn");
+  const old = widget.querySelector(".rip-nowplaying-btn");
   if (old) old.remove();
 
-  const btn = createButton("downlist-nowplaying-btn");
+  const btn = createButton("rip-nowplaying-btn");
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
     e.preventDefault();

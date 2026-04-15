@@ -1,7 +1,7 @@
-// Downlist — Beatport content script
+// rip.mp3 — Beatport content script
 // Reuses the same server + CSS as the Spotify script.
 
-const INJECTED_ATTR = "data-downlist";
+const INJECTED_ATTR = "data-rip";
 const SERVER = "http://localhost:7823";
 
 // Shared SVG icons (duplicated from content.js — no shared module in MV3 without bundler)
@@ -17,7 +17,7 @@ const ICON_ERROR = `<svg width="16" height="16" viewBox="0 0 16 16" fill="curren
 
 function createButton() {
   const btn = document.createElement("button");
-  btn.className = "downlist-btn dl-active";
+  btn.className = "rip-btn dl-active";
   btn.title = "Download track";
   btn.innerHTML = ICON_DOWNLOAD;
   return btn;
@@ -84,7 +84,7 @@ async function triggerDownload(info, btn) {
     pollStatus(data.id, btn);
   } catch (err) {
     setButtonState(btn, "error");
-    btn.title = err.message.includes("fetch") ? "Downlist server not running" : err.message;
+    btn.title = err.message.includes("fetch") ? "rip.mp3 server not running" : err.message;
   }
 }
 

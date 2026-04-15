@@ -1,4 +1,4 @@
-// Downlist — background service worker
+// rip.mp3 — background service worker
 // Proxies messages from content script to the local server.
 // (Content scripts can fetch localhost directly in MV3 unpacked extensions,
 //  but routing through background keeps CSP clean and centralises error handling.)

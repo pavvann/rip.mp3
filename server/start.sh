@@ -26,5 +26,5 @@ fi
 echo "Using $($PYTHON --version)"
 $PYTHON -m pip install -r requirements.txt -q
 
-echo "Starting Downlist server..."
+echo "Starting rip.mp3 server..."
 $PYTHON server.py

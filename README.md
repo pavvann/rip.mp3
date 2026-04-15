@@ -1,4 +1,4 @@
-# downlist
+# rip.mp3
 
 A Chrome extension for DJs. Injects a download button on Spotify Web and Beatport — click any track to download it as a 320kbps MP3, volume-normalized to -14 LUFS with metadata and cover art embedded. Keeps a history of everything you've grabbed.
 
@@ -49,7 +49,7 @@ The script auto-installs `flask`, `flask-cors`, `yt-dlp`, `ytmusicapi`, `rapidfu
 1. Go to `chrome://extensions`
 2. Enable **Developer mode** (toggle, top right)
 3. Click **Load unpacked** → select the `extension/` folder
-4. Pin the Downlist icon from the extensions menu
+4. Pin the rip.mp3 icon from the extensions menu
 
 ---
 
@@ -75,7 +75,7 @@ Download buttons appear on track rows in charts, releases, artist pages, and sea
 
 ### Extension popup
 
-Click the Downlist icon in the Chrome toolbar to see your full download history and open the downloads folder.
+Click the rip.mp3 icon in the Chrome toolbar to see your full download history and open the downloads folder.
 
 ---
 
@@ -97,7 +97,7 @@ Every file is:
 ## Project structure
 
 ```
-downlist/
+rip.mp3/
 ├── extension/
 │   ├── manifest.json       # Chrome MV3 manifest
 │   ├── content.js          # Spotify injection

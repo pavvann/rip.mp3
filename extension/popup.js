@@ -73,9 +73,9 @@ async function loadHistory() {
     renderHistory(history);
   } catch {
     statusBar.className = "offline";
-    statusBar.textContent = "Downlist server not running — start it with: cd server && bash start.sh";
+    statusBar.textContent = "rip.mp3 server not running — start it with: cd server && bash start.sh";
     emptyState.style.display = "block";
-    emptyState.innerHTML = `<strong>Server offline</strong>Start the server to use Downlist`;
+    emptyState.innerHTML = `<strong>Server offline</strong>Start the server to use rip.mp3`;
   }
 }
 
