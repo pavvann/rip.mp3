@@ -82,7 +82,7 @@ def find_youtube_url(track_name, artist):
 
             if score > best_score:
                 best_score = score
-                best_url = f"https://music.youtube.com/watch?v={r['videoId']}"
+                best_url = f"https://www.youtube.com/watch?v={r['videoId']}"
 
         if best_url and best_score >= 40:
             return best_url
