@@ -9,22 +9,21 @@ if ! command -v ffmpeg &>/dev/null; then
   exit 1
 fi
 
-# Find a Python 3 with pip available
-PYTHON=""
-for candidate in python3 python3.11 python3.10 python3.12; do
-  if command -v "$candidate" &>/dev/null; then
-    PYTHON="$candidate"
-    break
+# Use venv if it exists, otherwise fall back to system python
+if [ -f "venv/bin/python" ]; then
+  PYTHON="venv/bin/python"
+  PIP="venv/bin/pip"
+else
+  PYTHON=$(command -v python3 || command -v python)
+  PIP="$PYTHON -m pip"
+  if [ -z "$PYTHON" ]; then
+    echo "Error: Python 3 not found."
+    exit 1
   fi
-done
-
-if [ -z "$PYTHON" ]; then
-  echo "Error: Python 3 not found."
-  exit 1
 fi
 
 echo "Using $($PYTHON --version)"
-$PYTHON -m pip install -r requirements.txt -q
+$PIP install -r requirements.txt -q
 
 echo "Starting rip.mp3 server..."
 $PYTHON server.py
