@@ -165,6 +165,7 @@ def run_download(job_id, track_name, artist, genre=""):
         "quiet": True,
         "no_warnings": True,
         "default_search": "ytsearch",
+        "extractor_args": {"youtube": {"player_client": ["ios"]}},
     }
 
     try:
