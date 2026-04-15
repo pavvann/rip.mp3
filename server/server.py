@@ -149,7 +149,7 @@ def run_download(job_id, track_name, artist, genre=""):
             jobs[job_id]["progress"] = 99  # converting…
 
     ydl_opts = {
-        "format": "bestaudio/best",
+        "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best[ext=mp4]/best[ext=webm]/best",
         "outtmpl": output_template,
         "postprocessors": [
             {
