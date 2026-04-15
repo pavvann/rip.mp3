@@ -165,8 +165,7 @@ def run_download(job_id, track_name, artist, genre=""):
         "quiet": True,
         "no_warnings": True,
         "default_search": "ytsearch",
-        "extractor_args": {"youtube": {"player_client": ["ios"]}},
-        **({"cookiefile": str(Path(__file__).parent / "youtube_cookies.txt")} if (Path(__file__).parent / "youtube_cookies.txt").exists() else {}),
+**({"cookiefile": str(Path(__file__).parent / "youtube_cookies.txt")} if (Path(__file__).parent / "youtube_cookies.txt").exists() else {}),
     }
 
     try:
