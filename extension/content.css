@@ -71,3 +71,19 @@
 .rip-nowplaying-btn {
   margin-left: 8px;
 }
+
+/* Track page action bar button — match the larger header icons */
+.rip-trackpage-btn {
+  min-width: 32px;
+  height: 32px;
+  margin-left: 8px;
+}
+
+.rip-trackpage-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rip-trackpage-btn .dl-pct {
+  font-size: 11px;
+}

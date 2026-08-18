@@ -62,19 +62,52 @@ function extractTrackInfoFromRow(row) {
   const trackName = link.textContent.trim() || "Unknown Track";
 
   // Artist: look for artist links (href contains /artist/)
-  const artist = extractArtist(row);
+  const artist = extractArtist(row, trackName);
 
   // Genre: not available in Spotify track rows — leave empty, server won't overwrite
   return { spotify_url: spotifyUrl, track_name: trackName, artist, genre: "" };
 }
 
-function extractArtist(container) {
+function titlesMatch(a, b) {
+  const norm = (s) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const x = norm(a);
+  const y = norm(b);
+  if (!x || !y) return false;
+  return x === y || x.includes(y) || y.includes(x);
+}
+
+// Walks up from the title to the metadata line that holds the artist link. Used
+// instead of a whole-container search because a track page also renders a
+// "Recommended" list, whose rows would otherwise supply a different song's artist.
+function findArtistNearTitle(titleEl) {
+  let node = titleEl;
+  for (let depth = 0; node && depth < 5; depth++) {
+    const link = node.querySelector('a[href*="/artist/"]');
+    if (link) {
+      // Scope collaborators to the link's own line, not the whole subtree.
+      const scope = link.parentElement || link;
+      const names = Array.from(scope.querySelectorAll('a[href*="/artist/"]'))
+        .map((a) => a.textContent.trim())
+        .filter(Boolean);
+      const unique = [...new Set(names)];
+      if (unique.length) return unique.join(", ");
+    }
+    node = node.parentElement;
+  }
+  return "";
+}
+
+function extractArtist(container, expectedTitle = null) {
   // Most reliable: play button aria-label is always "Play {title} by {artist(s)}"
-  const playBtn = container.querySelector('button[aria-label^="Play "]');
-  if (playBtn) {
+  const playBtns = container.querySelectorAll('button[aria-label^="Play "]');
+  for (const playBtn of playBtns) {
     const label = playBtn.getAttribute("aria-label"); // "Play Indigo by Disguised"
-    const match = label.match(/^Play .+ by (.+)$/i);
-    if (match) return match[1].trim();
+    const match = (label || "").match(/^Play (.+) by (.+)$/i);
+    if (!match) continue;
+    // When we know the track, only trust a label naming it: a broad container can
+    // hold other tracks' play buttons (recommended list, related rows).
+    if (expectedTitle && !titlesMatch(match[1], expectedTitle)) continue;
+    return match[2].trim();
   }
 
   // Fallback: explicit artist page links
@@ -99,7 +132,7 @@ function extractTrackInfoFromNowPlaying(widget) {
   const trackId = match[1];
   const spotifyUrl = `https://open.spotify.com/track/${trackId}`;
   const trackName = link.textContent.trim() || "Unknown Track";
-  const artist = extractArtist(widget);
+  const artist = extractArtist(widget, trackName);
 
   return { spotify_url: spotifyUrl, track_name: trackName, artist };
 }
@@ -153,6 +186,28 @@ async function triggerDownload(info, btn) {
 
 // --- Inject into tracklist rows ---
 
+function rowKey(info) {
+  return `${info.track_name} — ${info.artist}`;
+}
+
+// A recycled row keeps our button — including a stale "done" tick that would
+// swallow the next click — so reset it whenever the underlying track changes.
+function refreshInjectedRows() {
+  document
+    .querySelectorAll(`[data-testid="tracklist-row"][${INJECTED_ATTR}]`)
+    .forEach((row) => {
+      const btn = row.querySelector(".rip-btn");
+      if (!btn || btn.classList.contains("dl-loading")) return;
+      const info = extractTrackInfoFromRow(row);
+      if (!info) return;
+      const key = rowKey(info);
+      if (btn.dataset.ripKey !== key) {
+        btn.dataset.ripKey = key;
+        setButtonState(btn, "idle");
+      }
+    });
+}
+
 function injectTrackRows() {
   const rows = document.querySelectorAll(
     `[data-testid="tracklist-row"]:not([${INJECTED_ATTR}])`
@@ -165,12 +220,16 @@ function injectTrackRows() {
     if (!info) return;
 
     const btn = createButton();
+    btn.dataset.ripKey = rowKey(info);
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       e.preventDefault();
-      if (!btn.classList.contains("dl-done") && !btn.classList.contains("dl-loading")) {
-        triggerDownload(info, btn);
-      }
+      if (btn.classList.contains("dl-done") || btn.classList.contains("dl-loading")) return;
+      // Re-read the row instead of trusting the info captured at injection time:
+      // Spotify recycles row elements while scrolling, so it may now hold a
+      // different track and we would download the wrong one.
+      const current = extractTrackInfoFromRow(row);
+      if (current) triggerDownload(current, btn);
     });
 
     // Find the duration/last cell to append next to
@@ -183,6 +242,59 @@ function injectTrackRows() {
       row.appendChild(btn);
     }
   });
+}
+
+// --- Inject into track page header (open.spotify.com/track/XXXX) ---
+
+function extractTrackPageInfo() {
+  const match = location.pathname.match(/^\/track\/([A-Za-z0-9]+)/);
+  if (!match) return null;
+
+  // Track name: entity title h1
+  const titleEl = document.querySelector('[data-testid="entityTitle"]') || document.querySelector("h1");
+  const trackName = titleEl ? titleEl.textContent.trim() : "Unknown Track";
+
+  // Artist: the header metadata line first, since closest("section") can reach the
+  // recommended-tracks list further down the page.
+  const header = titleEl ? titleEl.closest("section") || document : document;
+  const artist = findArtistNearTitle(titleEl) || extractArtist(header, trackName);
+
+  return {
+    spotify_url: `https://open.spotify.com/track/${match[1]}`,
+    track_name: trackName,
+    artist,
+    genre: "",
+  };
+}
+
+function injectTrackPage() {
+  const match = location.pathname.match(/^\/track\/([A-Za-z0-9]+)/);
+  if (!match) return;
+
+  const trackId = match[1];
+  const actionBar = document.querySelector('[data-testid="action-bar-row"]');
+  if (!actionBar) return;
+
+  // Re-inject if we navigated to a different track (Spotify reuses the DOM)
+  const existing = actionBar.querySelector(".rip-btn");
+  if (existing) {
+    if (existing.dataset.ripTrackId === trackId) return;
+    existing.remove();
+  }
+
+  const btn = createButton("rip-trackpage-btn");
+  btn.dataset.ripTrackId = trackId;
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (btn.classList.contains("dl-done") || btn.classList.contains("dl-loading")) return;
+    // Resolve on click: the header often finishes rendering after we inject, and
+    // Spotify swaps the page contents in place when navigating between tracks.
+    const info = extractTrackPageInfo();
+    if (info) triggerDownload(info, btn);
+  });
+
+  actionBar.appendChild(btn);
 }
 
 // --- Inject into now-playing bar ---
@@ -224,6 +336,8 @@ const observer = new MutationObserver(() => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     injectTrackRows();
+    refreshInjectedRows();
+    injectTrackPage();
     injectNowPlaying();
   }, 300);
 });
@@ -232,4 +346,5 @@ observer.observe(document.body, { childList: true, subtree: true });
 
 // Initial pass
 injectTrackRows();
+injectTrackPage();
 injectNowPlaying();

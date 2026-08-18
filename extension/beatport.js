@@ -130,6 +130,29 @@ function extractFromRow(row) {
 
 // --- Inject buttons ---
 
+const ROW_SELECTOR = `[data-testid="tracks-table-row"], [class*="TrackRow"], [class*="track-row"], li[class*="bucket-item"]`;
+
+function rowKey(info) {
+  return `${info.track_name} — ${info.artist}`;
+}
+
+// Rows re-rendered in place keep our button — including a stale "done" tick that
+// would swallow the next click — so reset it when the underlying track changes.
+function refreshInjectedRows() {
+  document.querySelectorAll(ROW_SELECTOR).forEach((row) => {
+    if (!row.hasAttribute(INJECTED_ATTR)) return;
+    const btn = row.querySelector(".rip-btn");
+    if (!btn || btn.classList.contains("dl-loading")) return;
+    const info = extractFromRow(row);
+    if (!info) return;
+    const key = rowKey(info);
+    if (btn.dataset.ripKey !== key) {
+      btn.dataset.ripKey = key;
+      setButtonState(btn, "idle");
+    }
+  });
+}
+
 function injectRows() {
   // Beatport track row selectors (covers charts, search, releases, artist pages)
   const rows = document.querySelectorAll(
@@ -146,12 +169,16 @@ function injectRows() {
     if (!info) return;
 
     const btn = createButton();
+    btn.dataset.ripKey = rowKey(info);
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       e.preventDefault();
-      if (!btn.classList.contains("dl-done") && !btn.classList.contains("dl-loading")) {
-        triggerDownload(info, btn);
-      }
+      if (btn.classList.contains("dl-done") || btn.classList.contains("dl-loading")) return;
+      // Re-read the row instead of trusting the info captured at injection time:
+      // Beatport re-renders rows in place when you sort, filter or page through a
+      // chart, and we would otherwise download whatever used to be in this row.
+      const current = extractFromRow(row);
+      if (current) triggerDownload(current, btn);
     });
 
     // Append to the last cell or the row itself
@@ -170,7 +197,10 @@ function injectRows() {
 let debounce = null;
 const observer = new MutationObserver(() => {
   clearTimeout(debounce);
-  debounce = setTimeout(injectRows, 400);
+  debounce = setTimeout(() => {
+    injectRows();
+    refreshInjectedRows();
+  }, 400);
 });
 observer.observe(document.body, { childList: true, subtree: true });
 injectRows();
