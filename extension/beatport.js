@@ -44,31 +44,37 @@ function setButtonState(btn, state, progress = null) {
   }
 }
 
+// Resolves once the job finishes either way, so "Download all" can wait on it.
 function pollStatus(jobId, btn) {
-  const interval = setInterval(async () => {
-    try {
-      const res = await fetch(`${SERVER}/status/${jobId}`);
-      const data = await res.json();
-      if (data.status === "done") {
-        clearInterval(interval);
-        setButtonState(btn, "done");
-      } else if (data.status === "normalizing") {
-        btn.classList.add("dl-loading");
-        btn.innerHTML = `<span class="dl-pct">~</span>`;
-        btn.title = "Normalizing volume…";
-      } else if (data.status === "downloading") {
-        setButtonState(btn, "loading", data.progress || 0);
-      } else if (data.status === "error") {
+  return new Promise((resolve) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${SERVER}/status/${jobId}`);
+        const data = await res.json();
+        if (data.status === "done") {
+          clearInterval(interval);
+          setButtonState(btn, "done");
+          resolve();
+        } else if (data.status === "normalizing") {
+          btn.classList.add("dl-loading");
+          btn.innerHTML = `<span class="dl-pct">~</span>`;
+          btn.title = "Normalizing volume…";
+        } else if (data.status === "downloading") {
+          setButtonState(btn, "loading", data.progress || 0);
+        } else if (data.status === "error") {
+          clearInterval(interval);
+          setButtonState(btn, "error");
+          btn.title = data.error || "Download failed";
+          resolve();
+        }
+      } catch {
         clearInterval(interval);
         setButtonState(btn, "error");
-        btn.title = data.error || "Download failed";
+        btn.title = "Server unreachable";
+        resolve();
       }
-    } catch {
-      clearInterval(interval);
-      setButtonState(btn, "error");
-      btn.title = "Server unreachable";
-    }
-  }, 2000);
+    }, 2000);
+  });
 }
 
 async function triggerDownload(info, btn) {
@@ -81,7 +87,7 @@ async function triggerDownload(info, btn) {
     });
     if (!res.ok) throw new Error(`Server error ${res.status}`);
     const data = await res.json();
-    pollStatus(data.id, btn);
+    await pollStatus(data.id, btn);
   } catch (err) {
     setButtonState(btn, "error");
     btn.title = err.message.includes("fetch") ? "rip.mp3 server not running" : err.message;
@@ -198,6 +204,71 @@ function injectRows() {
   });
 }
 
+// --- Download all ---
+// A chart like the Top 100 would otherwise take 100 clicks. Queue every row that
+// isn't already done, a few at a time so YouTube doesn't start throttling us.
+
+const BULK_CONCURRENCY = 3;
+let bulkBtn = null;
+let bulkRunning = false;
+
+function pendingButtons() {
+  return Array.from(document.querySelectorAll(".rip-btn")).filter(
+    (btn) => !btn.classList.contains("dl-done") && !btn.classList.contains("dl-loading")
+  );
+}
+
+async function downloadAll() {
+  if (bulkRunning) return;
+  bulkRunning = true;
+  const queue = pendingButtons();
+  const total = queue.length;
+  let finished = 0;
+  const showProgress = () => {
+    bulkBtn.textContent = `Downloading ${finished}/${total}…`;
+  };
+  showProgress();
+
+  async function worker() {
+    while (queue.length) {
+      const btn = queue.shift();
+      // Same as a manual click: skip anything started meanwhile, re-read the row.
+      const row = btn.closest(ROW_SELECTOR);
+      const info = row && extractFromRow(row);
+      if (info && !btn.classList.contains("dl-done") && !btn.classList.contains("dl-loading")) {
+        await triggerDownload(info, btn);
+      }
+      finished++;
+      showProgress();
+    }
+  }
+
+  await Promise.all(Array.from({ length: BULK_CONCURRENCY }, worker));
+  bulkRunning = false;
+  updateBulkButton();
+}
+
+function updateBulkButton() {
+  if (bulkRunning) return; // downloadAll owns the label until it finishes
+  if (document.querySelectorAll(".rip-btn").length < 2) {
+    bulkBtn?.remove();
+    bulkBtn = null;
+    return;
+  }
+  if (!bulkBtn) {
+    bulkBtn = document.createElement("button");
+    bulkBtn.className = "rip-bulk-btn";
+    bulkBtn.addEventListener("click", downloadAll);
+    document.body.appendChild(bulkBtn);
+  }
+  const pending = pendingButtons().length;
+  const label = pending ? `⬇ Download all (${pending})` : "✓ All downloaded";
+  // Rewriting the text is itself a mutation; only touch it on change or the
+  // observer would keep re-firing itself.
+  if (bulkBtn.textContent !== label) bulkBtn.textContent = label;
+  bulkBtn.disabled = pending === 0;
+}
+
 // MutationObserver for Beatport's SPA
 let debounce = null;
 const observer = new MutationObserver(() => {
@@ -205,7 +276,9 @@ const observer = new MutationObserver(() => {
   debounce = setTimeout(() => {
     injectRows();
     refreshInjectedRows();
+    updateBulkButton();
   }, 400);
 });
 observer.observe(document.body, { childList: true, subtree: true });
 injectRows();
+updateBulkButton();
