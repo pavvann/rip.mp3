@@ -218,9 +218,36 @@ function pendingButtons() {
   );
 }
 
+// Tracks the server already finished, keyed like rowKey. Button state dies with
+// the tab, so without this a rerun after closing the browser mid-chart would
+// fetch every track again instead of picking up where it stopped.
+let downloadedKeys = new Set();
+
+async function loadDownloaded() {
+  try {
+    const res = await fetch(`${SERVER}/history`);
+    downloadedKeys = new Set((await res.json()).map(rowKey));
+  } catch {
+    // Server down: leave the set as is; the downloads themselves will report it.
+  }
+}
+
+function markDownloaded() {
+  pendingButtons().forEach((btn) => {
+    const row = btn.closest(ROW_SELECTOR);
+    const info = row && extractFromRow(row);
+    if (info && downloadedKeys.has(rowKey(info))) {
+      setButtonState(btn, "done");
+      btn.title = "Already downloaded";
+    }
+  });
+}
+
 async function downloadAll() {
   if (bulkRunning) return;
   bulkRunning = true;
+  await loadDownloaded();
+  markDownloaded();
   const queue = pendingButtons();
   const total = queue.length;
   let finished = 0;
@@ -276,9 +303,14 @@ const observer = new MutationObserver(() => {
   debounce = setTimeout(() => {
     injectRows();
     refreshInjectedRows();
+    markDownloaded();
     updateBulkButton();
   }, 400);
 });
 observer.observe(document.body, { childList: true, subtree: true });
 injectRows();
 updateBulkButton();
+loadDownloaded().then(() => {
+  markDownloaded();
+  updateBulkButton();
+});
