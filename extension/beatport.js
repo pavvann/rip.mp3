@@ -130,7 +130,15 @@ function extractFromRow(row) {
 
 // --- Inject buttons ---
 
-const ROW_SELECTOR = `[data-testid="tracks-table-row"], [class*="TrackRow"], [class*="track-row"], li[class*="bucket-item"]`;
+const ROW_SELECTORS = [
+  `[data-testid="tracks-table-row"]`,
+  // Late-2026 redesign dropped the test id; rows are now div.Row-style__Stylized-….
+  `[class*="Row-style__Stylized"]`,
+  `[class*="TrackRow"]`,
+  `[class*="track-row"]`,
+  `li[class*="bucket-item"]`,
+];
+const ROW_SELECTOR = ROW_SELECTORS.join(", ");
 
 function rowKey(info) {
   return `${info.track_name} — ${info.artist}`;
@@ -156,10 +164,7 @@ function refreshInjectedRows() {
 function injectRows() {
   // Beatport track row selectors (covers charts, search, releases, artist pages)
   const rows = document.querySelectorAll(
-    `[data-testid="tracks-table-row"]:not([${INJECTED_ATTR}]),
-     [class*="TrackRow"]:not([${INJECTED_ATTR}]),
-     [class*="track-row"]:not([${INJECTED_ATTR}]),
-     li[class*="bucket-item"]:not([${INJECTED_ATTR}])`
+    ROW_SELECTORS.map((s) => `${s}:not([${INJECTED_ATTR}])`).join(", ")
   );
 
   rows.forEach((row) => {
